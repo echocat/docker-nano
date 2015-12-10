@@ -1,0 +1,9 @@
+#!/bin/bash
+
+if [ -z ${VERSION} ]; then
+	if [ -f "${BUILD_DIRECTORY}/version" ]; then
+		VERSION="`cat \"${BUILD_DIRECTORY}/version\"`"
+	else
+		fail "Neither a file \"${BUILD_DIRECTORY}/version\" exists nor is the environment variable VERSION set."
+	fi
+fi

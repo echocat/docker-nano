@@ -1,0 +1,4 @@
+#!/bin/bash
+. "`dirname \"${0}\"`/common"
+
+execute "${SOURCE_DIRECTORY}/build-buildroot-preFileSystemBuild"

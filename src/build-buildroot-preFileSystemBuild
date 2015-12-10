@@ -1,0 +1,35 @@
+#!/bin/bash
+. "`dirname \"${0}\"`/common"
+
+rm -rf output/target/dev
+
+rm -rf output/target/etc/network
+rm -f output/target/etc/fstab
+rm -f output/target/etc/hostname
+rm -f output/target/etc/issue
+rm -f output/target/etc/mtab
+rm -f output/target/etc/nsswitch.conf
+rm -f output/target/etc/os-release
+rm -f output/target/etc/resolv.conf
+rm -f output/target/etc/protocols
+rm -f output/target/etc/services
+
+rm -rf output/target/home
+rm -rf output/target/media
+rm -rf output/target/mnt
+rm -rf output/target/opt
+rm -rf output/target/proc
+rm -rf output/target/run
+rm -rf output/target/sys
+rm -rf output/target/var/www
+rm -rf output/target/var/run
+rm -rf output/target/tmp/*
+
+rm -f output/target/linuxrc
+
+execute mkdir -p                                      "output/target/usr/lib/sysinfo/${ORGANIZATION}/${PROJECT}"
+execute cp -f "${SOURCE_DIRECTORY}/buildroot.config"  "output/target/usr/lib/sysinfo/${ORGANIZATION}/${PROJECT}/buildroot.config"
+execute cp -f "${BUILD_DIRECTORY}/buildroot-version"  "output/target/usr/lib/sysinfo/${ORGANIZATION}/${PROJECT}/buildroot.version"
+execute cp -f "${BUILD_DIRECTORY}/version"            "output/target/usr/lib/sysinfo/${ORGANIZATION}/${PROJECT}/version"
+execute git rev-parse HEAD >                          "output/target/usr/lib/sysinfo/${ORGANIZATION}/${PROJECT}/revision"
+execute date +'%F %R:%S%z' >                          "output/target/usr/lib/sysinfo/${ORGANIZATION}/${PROJECT}/date"

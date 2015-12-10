@@ -1,0 +1,15 @@
+#!/bin/bash
+
+. "`dirname \"${0}\"`/common"
+
+if [ -f "${BUILD_DIRECTORY}/skipBuild" ] || [ -n "${SKIP_BUILD}" ]; then
+	log INFO "Build will be skipped."
+	exit
+fi
+
+include versionBased
+include build-buildroot
+include build-docker-container
+
+build-buildroot
+build-docker-container

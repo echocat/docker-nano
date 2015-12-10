@@ -1,0 +1,10 @@
+#!/bin/bash
+
+function build-docker-container {
+	if [ -f "${BUILD_DIRECTORY}/skipBuild-dockerContainer" ] || [ -n "${SKIP_BUILD_DOCKER_CONTAINER}" ]; then
+		log INFO "Build of docker container will be skipped."
+	else
+		checkForExecutable docker
+		execute docker build -t "${ORGANIZATION}/${PROJECT}:${VERSION}" "${BASE_DIRECTORY}"
+	fi
+}

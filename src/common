@@ -1,0 +1,136 @@
+#!/bin/bash
+
+OLD_PWD="`pwd`"
+ROOT_FILE="`readlink -m \"${0}\"`"
+SOURCE_DIRECTORY="`dirname \"${ROOT_FILE}\"`"
+BASE_DIRECTORY="`readlink -m \"${SOURCE_DIRECTORY}/..\"`"
+BUILD_DIRECTORY="${BASE_DIRECTORY}/target"
+IMAGES_DIRECTORY="${BASE_DIRECTORY}/images"
+
+function printStacktrace {
+	if [ "${1}" != "" ]; then
+		local start=${1}
+	else
+		local start=0
+	fi
+	i=${start}
+	while element="`caller $i`"; do
+		i=$((i+1))
+		echo "${element}" | sed "s/^\([0-9][0-9]*\) \([^ ][^ ]*\) \(.*\)$/\\tat \2(\3:\1)/" >&2
+	done
+}
+
+function log {
+	if [ "$2" == "" ]; then
+		local level=INFO
+		local message=$2
+	else
+		local level=${1^^}
+		local message=$2
+	fi
+
+	local timestamp="`date +\"%Y-%m-%d %H:%M:%S%z\"`"
+
+	if [ "$level" == "WARN" ] || [ "$level" == "ERROR" ] || [ "$level" == "FATAL" ]; then
+		echo "### ${timestamp} [${level}] ${message}" >&2
+	else
+		echo "### ${timestamp} [${level}] ${message}"
+	fi
+}
+
+function fatal {
+	local depth=${2}
+	if [ "${1}" != "" ]; then
+		local message="${1}"
+	else
+		local message="There was a problem."
+	fi
+
+	log FATAL "${message}"
+	printStacktrace $((depth+1))
+	exit 1
+}
+
+function fail {
+	local depth=${2}
+	if [ "${1}" != "" ]; then
+		local message="${1}"
+	else
+		local message="There was a problem."
+	fi
+
+	log ERROR "${message}"
+	printStacktrace $((depth+1))
+	exit 1
+}
+
+function execute {
+	local command=""
+	for i in `seq 1 $#`; do
+		local argument="$i"
+		if [ $i -eq 1 ]; then
+			local command="\"${!argument}\""
+		else
+			local command="$command \"${!argument}\""
+		fi
+	done
+	eval "$command"
+	local errorCode=$?
+	if [ $errorCode -ne 0 ]; then
+		fail "While executing '$command' got error code: $errorCode"
+	fi
+}
+
+function executeAndWarn {
+	local command=""
+	for i in `seq 1 $#`; do
+		local argument="$i"
+		if [ $i -eq 1 ]; then
+			local command="\"${!argument}\""
+		else
+			local command="$command \"${!argument}\""
+		fi
+	done
+	eval "$command"
+	local errorCode=$?
+	if [ $errorCode -ne 0 ]; then
+		log WARN "While executing '$command' got error code: $errorCode"
+	fi
+}
+
+function checkForExecutable {
+	if [ -z "${1}" ]; then
+		fail "No executable for checking specified. Usage: ${FUNCNAME} <script>"
+	fi
+	fullExecutableName="`which \"${1}\" 2> /dev/null`"
+	local errorCode=$?
+	if [ $errorCode -ne 0 ]; then
+		fail "Could not resolve required executable ${1} in whole path. Try to install it."
+	fi
+}
+
+function executableExists {
+	if [ -z "${1}" ]; then
+		fail "No executable for checking specified. Usage: ${FUNCNAME} <script>"
+	fi
+	fullExecutableName="`which \"${1}\" 2> /dev/null`"
+	return $?
+}
+
+function include {
+	if [ -z "${1}" ]; then
+		fail "No script for include specified. Usage: ${FUNCNAME} <script>"
+	fi
+	. "${SOURCE_DIRECTORY}/${1}"
+}
+
+function cleanup {
+	if [ -n "${OLD_PWD}" ]; then
+		execute cd "${OLD_PWD}"
+	fi
+}
+trap cleanup EXIT
+trap cleanup ERR
+trap "kill 0" SIGINT
+
+include settings

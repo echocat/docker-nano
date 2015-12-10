@@ -1,0 +1,63 @@
+#!/bin/bash
+
+BUILDROOT_VERSION="`cat \"${BUILD_DIRECTORY}/buildroot-version\"`"
+SLEEP_BETWEEN_TAILS=5m
+LINES_OF_TAILS=20
+
+function print-tail-every {
+	while [ true ]; do
+		sleep $SLEEP_BETWEEN_TAILS
+		log INFO "make is still ongoing. Output of the latest $LINES_OF_TAILS lines:"
+		tail -n $LINES_OF_TAILS $1
+		echo ""
+	done
+}
+
+function prepare-buildroot-directory {
+	execute mkdir -p "${BUILD_DIRECTORY}"
+	execute cd "${BUILD_DIRECTORY}"
+	checkForExecutable wget
+	checkForExecutable tar
+	execute wget -nv "http://buildroot.uclibc.org/downloads/buildroot-${BUILDROOT_VERSION}.tar.gz" -O "buildroot-${BUILDROOT_VERSION}.tar.gz"
+	execute tar -xzf "buildroot-${BUILDROOT_VERSION}.tar.gz"
+	execute cp -f "${SOURCE_DIRECTORY}/buildroot.config" "${BUILD_DIRECTORY}/buildroot-${BUILDROOT_VERSION}/.config"
+}
+
+function store-buildroot-artifacts {
+	execute mkdir -p "${IMAGES_DIRECTORY}"
+	execute cp -f "${BUILD_DIRECTORY}/buildroot-${BUILDROOT_VERSION}/output/images/rootfs.tar.gz" "${IMAGES_DIRECTORY}/rootfs.tar.gz"
+}
+
+function build-buildroot {
+	if [ -f "${BUILD_DIRECTORY}/skipBuild-buildroot" ] || [ -n "${SKIP_BUILD_BUILDROOT}" ]; then
+		log INFO "Build of buildroot will be skipped."
+	else
+		prepare-buildroot-directory
+
+		if [ "${CALL_BUILDROOT_MENU_CONFIG,,}" == "y" ]; then
+			execute make menuconfig
+			execute cp -f "${BUILD_DIRECTORY}/buildroot-${BUILDROOT_VERSION}/.config" "${SOURCE_DIRECTORY}/buildroot.config"
+			exit 0
+		fi
+		execute cd "${BUILD_DIRECTORY}/buildroot-${BUILDROOT_VERSION}"
+		log INFO "Start building of buildroot. This could take a while without any output. Output be gerenated on errors and every $SLEEP_BETWEEN_TAILS with the last $LINES_OF_TAILS lines."
+
+		make &> .build.log &
+		local makePid=$!
+
+		print-tail-every .build.log &
+		local tailPid=$!
+
+		wait $makePid
+		local errorCode=$?
+		kill $tailPid
+
+		if [ $errorCode -ne 0 ]; then
+			tail -n 50 .build.log 1>&2
+			fail "While building buildroot an error was produced: $errorCode"
+		fi
+		log INFO "Build of buildroot done!"
+
+		store-buildroot-artifacts
+	fi
+}

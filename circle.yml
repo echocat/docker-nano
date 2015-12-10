@@ -1,0 +1,27 @@
+general:
+  artifacts:
+    - "images"
+
+machine:
+  services:
+    - docker
+
+dependencies:
+  pre:
+    - sudo apt-get update
+    - sudo apt-get install build-essential rsync cpio python unzip bc wget curl git ssh scons libmozjs-dev
+  override:
+    - docker info
+
+test:
+  pre:
+    - src/detectVersion
+  override:
+    - src/build
+
+deployment:
+  hub:
+    branch: /(master|v.*)/
+    commands:
+      - docker login -e $DOCKERHUB_EMAIL -u $DOCKERHUB_USER -p $DOCKERHUB_PASS
+      - src/deploy

@@ -11,10 +11,10 @@ include versionBased
 
 function findAliasVersions {
 	execute mkdir -p "${BUILD_DIRECTORY}"
-	echo -n "var tags=" > "${BUILD_DIRECTORY}/_printRemoteDockerTags.js"
-	curl -sSL https://index.docker.io/v1/repositories/echocat/nano/tags >> "${BUILD_DIRECTORY}/_printRemoteDockerTags.js"
-	echo -n ";" >> "${BUILD_DIRECTORY}/_printRemoteDockerTags.js"
-	cat "${SOURCE_DIRECTORY}/printRemoteDockerTags.js" >> "${BUILD_DIRECTORY}/_printRemoteDockerTags.js"
+	execute echo -n "var tags=" > "${BUILD_DIRECTORY}/_printRemoteDockerTags.js"
+	execute curl -fsSL https://index.docker.io/v1/repositories/echocat/nano/tags >> "${BUILD_DIRECTORY}/_printRemoteDockerTags.js"
+	execute echo -n ";" >> "${BUILD_DIRECTORY}/_printRemoteDockerTags.js"
+	execute cat "${SOURCE_DIRECTORY}/printRemoteDockerTags.js" >> "${BUILD_DIRECTORY}/_printRemoteDockerTags.js"
 	execute js "${BUILD_DIRECTORY}/_printRemoteDockerTags.js" $1
 }
 

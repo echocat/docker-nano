@@ -4,10 +4,20 @@ if [ -z "${GITHUB_ACCESS_TOKEN}" ]; then
 	fail "Cannot deploy to Github becuase GITHUB_ACCESS_TOKEN environment variable is missing."
 fi
 
-function extractReleaseId {
-	checkForExecutable js
-	echo "var data=${*}; print(data.id);" | js
+function checkForJq {
+	if [ ! -x "${BUILD_DIRECTORY}/jq" ]; then
+		execute mkdir -p "${BUILD_DIRECTORY}"
+		checkForExecutable wget
+		execute wget -q https://github.com/stedolan/jq/releases/download/jq-1.5/jq-linux64 -O "${BUILD_DIRECTORY}/jq"
+		execute chmod +x "${BUILD_DIRECTORY}/jq"
+	fi
 }
+
+function extractReleaseId {
+	checkForJq
+	echo $* | "${BUILD_DIRECTORY}/jq" ".id"
+}
+
 function deploy-github-removeAlreadyExistingRelease {
 	checkForExecutable curl
 	checkForExecutable git
@@ -17,7 +27,7 @@ function deploy-github-removeAlreadyExistingRelease {
 		-H "Authorization: token $GITHUB_ACCESS_TOKEN" \
 		2> /dev/null
 	)
-	if [ $? -eq 0 ]; then
+	if [ $? -eq 0 ] && [ -n "$releaseInfo" ]; then
 		log INFO "Remove already existing release..."
 		local releaseId=$(extractReleaseId ${releaseInfo})
 		execute curl --fail -s -S -X DELETE https://api.github.com/repos/echocat/docker-nano/releases/${releaseId} \
@@ -31,41 +41,45 @@ function deploy-github-removeAlreadyExistingRelease {
 }
 
 function deploy-github-artifacts {
-	deploy-github-removeAlreadyExistingRelease
+	if [ -f "${BUILD_DIRECTORY}/skipDeploy-github-artifacts" ] || [ -n "${SKIP_DEPLOY_GITHUB_ARTIFACTS}" ]; then
+		log INFO "Deploy of github artifacts will be skipped."
+	else
+		deploy-github-removeAlreadyExistingRelease
 
-	checkForExecutable curl
-	log INFO "Create release..."
-	local releaseInfo=$(curl --fail -sS -X POST https://api.github.com/repos/echocat/docker-nano/releases \
-		-H "Accept: application/vnd.github.v3+json" \
-		-H "Authorization: token $GITHUB_ACCESS_TOKEN" \
-		-H "Content-Type: application/json" \
-		-d "{
-			\"tag_name\": \"v${VERSION}\",
-			\"name\": \"v${VERSION}\",
-			\"target_commitish\": \"v${VERSION}\"
-		}" \
-	)
-	if [ $? -ne 0 ]; then
-		fail "Could not create release."
+		checkForExecutable curl
+		log INFO "Create release..."
+		local releaseInfo=$(curl --fail -sS -X POST https://api.github.com/repos/echocat/docker-nano/releases \
+			-H "Accept: application/vnd.github.v3+json" \
+			-H "Authorization: token $GITHUB_ACCESS_TOKEN" \
+			-H "Content-Type: application/json" \
+			-d "{
+				\"tag_name\": \"v${VERSION}\",
+				\"name\": \"v${VERSION}\",
+				\"target_commitish\": \"v${VERSION}\"
+			}" \
+		)
+		if [ $? -ne 0 ]; then
+			fail "Could not create release."
+		fi
+		log INFO "Create release... DONE!"
+		local releaseId=$(extractReleaseId ${releaseInfo})
+
+		log INFO "Upload toolchain.tar.gz to release assets..."
+		execute curl --fail -sS -X POST https://uploads.github.com/repos/echocat/docker-nano/releases/${releaseId}/assets?name=toolchain.tar.gz \
+			-H "Accept: application/vnd.github.v3+json" \
+			-H "Authorization: token $GITHUB_ACCESS_TOKEN" \
+			-H "Content-Type: application/octet-stream" \
+			--data-binary @"${IMAGES_DIRECTORY}/toolchain.tar.gz" \
+			> /dev/null;
+		log INFO "Upload toolchain.tar.gz to release assets... DONE!"
+
+		log INFO "Upload rootfs.tar.gz to release assets..."
+		execute curl --fail --retry 10 -sS -X POST https://uploads.github.com/repos/echocat/docker-nano/releases/${releaseId}/assets?name=rootfs.tar.gz \
+			-H "Accept: application/vnd.github.v3+json" \
+			-H "Authorization: token $GITHUB_ACCESS_TOKEN" \
+			-H "Content-Type: application/octet-stream" \
+			--data-binary @"${IMAGES_DIRECTORY}/rootfs.tar.gz" \
+			> /dev/null;
+		log INFO "Upload rootfs.tar.gz to release assets... DONE!"
 	fi
-	log INFO "Create release... DONE!"
-	local releaseId=$(extractReleaseId ${releaseInfo})
-
-	log INFO "Upload toolchain.tar.gz to release assets..."
-	execute curl --fail -sS -X POST https://uploads.github.com/repos/echocat/docker-nano/releases/${releaseId}/assets?name=toolchain.tar.gz \
-		-H "Accept: application/vnd.github.v3+json" \
-		-H "Authorization: token $GITHUB_ACCESS_TOKEN" \
-		-H "Content-Type: application/octet-stream" \
-		--data-binary @"${IMAGES_DIRECTORY}/toolchain.tar.gz" \
-		> /dev/null;
-	log INFO "Upload toolchain.tar.gz to release assets... DONE!"
-
-	log INFO "Upload rootfs.tar.gz to release assets..."
-	execute curl --fail -sS -X POST https://uploads.github.com/repos/echocat/docker-nano/releases/${releaseId}/assets?name=rootfs.tar.gz \
-		-H "Accept: application/vnd.github.v3+json" \
-		-H "Authorization: token $GITHUB_ACCESS_TOKEN" \
-		-H "Content-Type: application/octet-stream" \
-		--data-binary @"${IMAGES_DIRECTORY}/rootfs.tar.gz" \
-		> /dev/null;
-	log INFO "Upload rootfs.tar.gz to release assets... DONE!"
 }

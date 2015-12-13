@@ -11,19 +11,23 @@ function deploy-docker-findAliasVersions {
 
 
 function deploy-docker {
-	aliasVersions=`deploy-docker-findAliasVersions ${VERSION}`
-	if [ $? -ne 0 ]; then
-		exit $?
+	if [ -f "${BUILD_DIRECTORY}/skipDeploy-docker" ] || [ -n "${SKIP_DEPLOY_DOCKER}" ]; then
+		log INFO "Deploy of docker image will be skipped."
+	else
+		aliasVersions=`deploy-docker-findAliasVersions ${VERSION}`
+		if [ $? -ne 0 ]; then
+			exit $?
+		fi
+
+		log info "Push major tag \"${ORGANIZATION}/${PROJECT}:${VERSION}\"..."
+		execute docker push "${ORGANIZATION}/${PROJECT}:${VERSION}"
+		log info "Push major tag \"${ORGANIZATION}/${PROJECT}:${VERSION}\"... DONE!"
+
+		for aliasVersion in $aliasVersions; do
+			log info "Push alias tag \"${ORGANIZATION}/${PROJECT}:${aliasVersion}\"..."
+			execute docker tag -f "${ORGANIZATION}/${PROJECT}:${VERSION}" "${ORGANIZATION}/${PROJECT}:${aliasVersion}"
+			execute docker push "${ORGANIZATION}/${PROJECT}:${aliasVersion}"
+			log info "Push alias tag \"${ORGANIZATION}/${PROJECT}:${aliasVersion}\"... DONE!"
+		done
 	fi
-
-	log info "Push major tag \"${ORGANIZATION}/${PROJECT}:${VERSION}\"..."
-	execute docker push "${ORGANIZATION}/${PROJECT}:${VERSION}"
-	log info "Push major tag \"${ORGANIZATION}/${PROJECT}:${VERSION}\"... DONE!"
-
-	for aliasVersion in $aliasVersions; do
-		log info "Push alias tag \"${ORGANIZATION}/${PROJECT}:${aliasVersion}\"..."
-		execute docker tag -f "${ORGANIZATION}/${PROJECT}:${VERSION}" "${ORGANIZATION}/${PROJECT}:${aliasVersion}"
-		execute docker push "${ORGANIZATION}/${PROJECT}:${aliasVersion}"
-		log info "Push alias tag \"${ORGANIZATION}/${PROJECT}:${aliasVersion}\"... DONE!"
-	done
 }

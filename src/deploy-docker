@@ -3,7 +3,7 @@
 function deploy-docker-findAliasVersions {
 	execute mkdir -p "${BUILD_DIRECTORY}"
 	execute echo -n "var tags=" > "${BUILD_DIRECTORY}/_printRemoteDockerTags.js"
-	execute curl -fsSL https://index.docker.io/v1/repositories/echocat/nano/tags >> "${BUILD_DIRECTORY}/_printRemoteDockerTags.js"
+	execute curl -fsSL https://index.docker.io/v1/repositories/${ORGANIZATION}/${PROJECT}/tags >> "${BUILD_DIRECTORY}/_printRemoteDockerTags.js"
 	execute echo -n ";" >> "${BUILD_DIRECTORY}/_printRemoteDockerTags.js"
 	execute cat "${SOURCE_DIRECTORY}/printRemoteDockerTags.js" >> "${BUILD_DIRECTORY}/_printRemoteDockerTags.js"
 	execute js "${BUILD_DIRECTORY}/_printRemoteDockerTags.js" $1

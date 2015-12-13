@@ -26,6 +26,9 @@ function prepare-buildroot-directory {
 function store-buildroot-artifacts {
 	execute mkdir -p "${IMAGES_DIRECTORY}"
 	execute cp -f "${BUILD_DIRECTORY}/buildroot-${BUILDROOT_VERSION}/output/images/rootfs.tar.gz" "${IMAGES_DIRECTORY}/rootfs.tar.gz"
+	
+	execute cd "${BUILD_DIRECTORY}/buildroot-${BUILDROOT_VERSION}/output/host"
+	execute tar -czf "${IMAGES_DIRECTORY}/toolchain.tar.gz" .
 }
 
 function build-buildroot {

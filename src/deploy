@@ -8,6 +8,7 @@ if [ -f "${BUILD_DIRECTORY}/skipDeploy" ]; then
 fi
 
 include versionBased
+include deploy-github-artifacts
 
 function findAliasVersions {
 	execute mkdir -p "${BUILD_DIRECTORY}"
@@ -33,3 +34,5 @@ for aliasVersion in $aliasVersions; do
 	execute docker push "${ORGANIZATION}/${PROJECT}:${aliasVersion}"
 	log info "Push alias tag \"${ORGANIZATION}/${PROJECT}:${aliasVersion}\"... DONE!"
 done
+
+deploy-github-artifacts

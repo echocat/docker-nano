@@ -8,31 +8,8 @@ if [ -f "${BUILD_DIRECTORY}/skipDeploy" ]; then
 fi
 
 include versionBased
+include deploy-docker
 include deploy-github-artifacts
 
-function findAliasVersions {
-	execute mkdir -p "${BUILD_DIRECTORY}"
-	execute echo -n "var tags=" > "${BUILD_DIRECTORY}/_printRemoteDockerTags.js"
-	execute curl -fsSL https://index.docker.io/v1/repositories/echocat/nano/tags >> "${BUILD_DIRECTORY}/_printRemoteDockerTags.js"
-	execute echo -n ";" >> "${BUILD_DIRECTORY}/_printRemoteDockerTags.js"
-	execute cat "${SOURCE_DIRECTORY}/printRemoteDockerTags.js" >> "${BUILD_DIRECTORY}/_printRemoteDockerTags.js"
-	execute js "${BUILD_DIRECTORY}/_printRemoteDockerTags.js" $1
-}
-
-aliasVersions=`findAliasVersions ${VERSION}`
-if [ $? -ne 0 ]; then
-	exit $?
-fi
-
-log info "Push major tag \"${ORGANIZATION}/${PROJECT}:${VERSION}\"..."
-execute docker push "${ORGANIZATION}/${PROJECT}:${VERSION}"
-log info "Push major tag \"${ORGANIZATION}/${PROJECT}:${VERSION}\"... DONE!"
-
-for aliasVersion in $aliasVersions; do
-	log info "Push alias tag \"${ORGANIZATION}/${PROJECT}:${aliasVersion}\"..."
-	execute docker tag -f "${ORGANIZATION}/${PROJECT}:${VERSION}" "${ORGANIZATION}/${PROJECT}:${aliasVersion}"
-	execute docker push "${ORGANIZATION}/${PROJECT}:${aliasVersion}"
-	log info "Push alias tag \"${ORGANIZATION}/${PROJECT}:${aliasVersion}\"... DONE!"
-done
-
+deploy-docker
 deploy-github-artifacts

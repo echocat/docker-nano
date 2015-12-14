@@ -27,7 +27,7 @@ function store-buildroot-artifacts {
 	execute mkdir -p "${IMAGES_DIRECTORY}"
 	execute cp -f "${BUILD_DIRECTORY}/buildroot-${BUILDROOT_VERSION}/output/images/rootfs.tar.gz" "${IMAGES_DIRECTORY}/rootfs.tar.gz"
 	
-	execute cd "${BUILD_DIRECTORY}/buildroot-${BUILDROOT_VERSION}/output/host"
+	execute cd "${BUILD_DIRECTORY}/buildroot-${BUILDROOT_VERSION}/output/host/usr"
 	execute tar -czf "${IMAGES_DIRECTORY}/toolchain.tar.gz" .
 }
 
@@ -45,10 +45,10 @@ function build-buildroot {
 		execute cd "${BUILD_DIRECTORY}/buildroot-${BUILDROOT_VERSION}"
 		log INFO "Start building of buildroot. This could take a while without any output. Output be gerenated on errors and every $SLEEP_BETWEEN_TAILS with the last $LINES_OF_TAILS lines."
 
-		make &> .build.log &
+		make &> "${BUILD_DIRECTORY}/build-buildroot.log" &
 		local makePid=$!
 
-		print-tail-every .build.log &
+		print-tail-every "${BUILD_DIRECTORY}/build-buildroot.log" &
 		local tailPid=$!
 
 		wait $makePid
@@ -56,7 +56,7 @@ function build-buildroot {
 		kill $tailPid
 
 		if [ $errorCode -ne 0 ]; then
-			tail -n 50 .build.log 1>&2
+			tail -n 50 "${BUILD_DIRECTORY}/build-buildroot.log" 1>&2
 			fail "While building buildroot an error was produced: $errorCode"
 		fi
 		log INFO "Build of buildroot done!"

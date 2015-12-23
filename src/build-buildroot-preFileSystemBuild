@@ -27,6 +27,8 @@ rm -rf output/target/tmp/*
 
 rm -f output/target/linuxrc
 
+execute yes | cp -rf "${SOURCE_DIRCTORY}/overlay/*" "output/target/"
+
 execute mkdir -p                                      "output/target/usr/lib/sysinfo/${ORGANIZATION}/${PROJECT}"
 execute cp -f "${SOURCE_DIRECTORY}/buildroot.config"  "output/target/usr/lib/sysinfo/${ORGANIZATION}/${PROJECT}/buildroot.config"
 execute cp -f "${BUILD_DIRECTORY}/buildroot-version"  "output/target/usr/lib/sysinfo/${ORGANIZATION}/${PROJECT}/buildroot.version"

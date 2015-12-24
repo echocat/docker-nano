@@ -21,7 +21,7 @@ function prepare-buildroot-directory {
 	execute wget -nv "http://buildroot.uclibc.org/downloads/buildroot-${BUILDROOT_VERSION}.tar.gz" -O "buildroot-${BUILDROOT_VERSION}.tar.gz"
 	execute tar -xzf "buildroot-${BUILDROOT_VERSION}.tar.gz"
 	execute cp -f "${SOURCE_DIRECTORY}/buildroot.config" "${BUILD_DIRECTORY}/buildroot-${BUILDROOT_VERSION}/.config"
-	execute yes | cp -rf "${SOURCE_DIRCTORY}/overlay/*" "${BUILD_DIRECTORY}/buildroot-${BUILDROOT_VERSION}/system/skeleton/"
+	execute cp -rf "${SOURCE_DIRECTORY}/skeleton/" "${BUILD_DIRECTORY}/buildroot-${BUILDROOT_VERSION}/system/"
 }
 
 function store-buildroot-artifacts {
